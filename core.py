@@ -5,8 +5,35 @@ import scipy.special as sps
 
 class Covariance_Matrix(object):
     """ Empty covariance matrix class """
-    def __init__(self,params=None):
+    def __init__(self,params=dict()):
         self.params = params
+        self.cov_matrix = np.array([])
+        self.covmatrices = []
+
+    def get_covmatrix(self):
+        return np.array([])
+
+    def get_covmatrix_derivative(self,param_name,delta=1e-7):
+        self.params[param_name] = self.params[param_name] * (1 + delta)
+        covm_1 = self.get_covmatrix()
+        self.params[param_name] = self.params[param_name] / (1 + delta)
+        covm_2 = self.get_covmatrix()
+        return (covm_2 - covm_1) / delta
+
+class TotalCovMatrix(Covariance_Matrix):
+    def __init__(self,covmatrices,params=dict()):
+        Covariance_Matrix.__init__(self,params)
+        self.covmatrices = covmatrices
+        [self.params.update(cvm.params) for cvm in covmatrices]
+
+    def get_covmatrix(self):
+        """ Update param values in all covmatrices, and then sum over them """
+        for cvm in self.covmatrices:
+            for cvm_param_key, cvm_param_value in cvm.params.items():
+                cvm.params[cvm_param_key] = self.params[cvm_param_key]
+        all_cvms = []
+        [all_cvms.append( cvm.get_covmatrix() ) for cvm in self.covmatrices]
+        return sum(all_cvms)
 
 class WhiteCovMatrix(Covariance_Matrix):
     def __init__(self,params=None,sigma_prefit=None,bcknd_per_toa=None,sigma_type='frequentist'):
@@ -31,7 +58,8 @@ class WhiteCovMatrix(Covariance_Matrix):
             cvmsig = WhiteCovMatrix.sigma_bayesian(self)
         elif self.sigma_type == 'frequentist':
             cvmsig = WhiteCovMatrix.sigma_frequentist(self)
-        return np.diag(cvmsig**2)
+        self.cov_matrix = np.diag(cvmsig**2)
+        return self.cov_matrix
 
     def sigma_bayesian(self):
         sb = np.multiply(self.sigma_prefit,self.efvaltoa)
@@ -90,15 +118,21 @@ class WhiteCovMatrix(Covariance_Matrix):
 class SpinCovMatrix(Covariance_Matrix):
     def __init__(self,params=None,toa=None):
         Covariance_Matrix.__init__(self,params)
+        self.toa = toa
 
     def get_covmatrix(self):
-        # [!] FIRST - get tau matrix from toa
+        """
+        Red covariance matrix depends on (i,j) matrix tau=abs(ToA_i - ToA_j)
+        """
+        tau = np.abs(self.toa[:,np.newaxis] - self.toa)
+
         pow1 = .5-self.params['alpha']/2
         pow2 = -.5-self.params['alpha']/2
         pow3 = -.5+self.params['alpha']/2
         part1 = 2**pow1 / self.params['fc']**pow2
-        part2 = self.params['p0'] * spc.year**3 * np.sqrt(np.pi) *
-                (2*np.pi*tau)**pow3
-        part3 = sps.yv(pow1,2*np.pi*tau*self.params['fc']) / 
-                sps.gamma(self.params['alpha']/2)
-        out = part1 * part2 * part3
+        part2 = self.params['p0'] * spc.year**3 * np.sqrt(np.pi)
+        part3 = ( 2*np.pi*tau )**pow3
+        part4 = sps.yv(pow1,2*np.pi*tau*self.params['fc']) / sps.gamma(self.params['alpha']/2)
+        np.fill_diagonal(part4,0) # Replace inf by 0
+        self.cov_matrix = part1 * part2 * np.multiply(part3,part4)
+        return self.cov_matrix
