@@ -72,8 +72,6 @@ print( ccc.get_fisher() )
 
 # Pseudo-inverting the Fisher matrix:
 fisher = aaa.get_fisher()
-print('Fisher matrix for white noise:')
-print(fisher)
 error_matrix = pd.DataFrame(np.linalg.pinv(fisher),fisher.columns,fisher.index)
 print('Minimum error matrix for white noise:')
 print(error_matrix)

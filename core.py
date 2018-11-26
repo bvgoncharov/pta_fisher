@@ -39,6 +39,7 @@ class Covariance_Matrix(object):
         return self.fisher
 
 class TotalCovMatrix(Covariance_Matrix):
+    """ Takes component covariance matrices as a list covmatrices """
     def __init__(self,covmatrices,params=dict()):
         Covariance_Matrix.__init__(self,params)
         self.covmatrices = covmatrices
