@@ -1,6 +1,7 @@
 from core import WhiteCovMatrix, SpinCovMatrix, TotalCovMatrix
 import numpy as np
 import scipy.constants as spc
+import pandas as pd
 import ipdb
 
 # Getting a covariance matrix from manually given values
@@ -60,3 +61,19 @@ print('Total covariance matrix derivative with respect to efac_20cm:')
 print( ddd.get_covmatrix_derivative(param_name='efac_20cm') )
 print('Total covariance matrix derivative with respect to alpha:')
 print( ddd.get_covmatrix_derivative(param_name='alpha') )
+
+# Testing a Fisher matrix calculation:
+print('Fisher information matrix from total matrix')
+print( ddd.get_fisher() )
+print('Fisher information matrix from white matrix')
+print( aaa.get_fisher() )
+print('Fisher information matrix from red matrix')
+print( ccc.get_fisher() )
+
+# Pseudo-inverting the Fisher matrix:
+fisher = aaa.get_fisher()
+print('Fisher matrix for white noise:')
+print(fisher)
+error_matrix = pd.DataFrame(np.linalg.pinv(fisher),fisher.columns,fisher.index)
+print('Minimum error matrix for white noise:')
+print(error_matrix)

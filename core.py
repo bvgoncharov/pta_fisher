@@ -2,13 +2,15 @@ import numpy as np
 import ipdb
 import scipy.constants as spc
 import scipy.special as sps
+import pandas as pd
 
 class Covariance_Matrix(object):
-    """ Empty covariance matrix class """
+    """ Base for covariance matrix class """
     def __init__(self,params=dict()):
         self.params = params
         self.cov_matrix = np.array([])
         self.covmatrices = []
+        self.fisher = None
 
     def get_covmatrix(self):
         return np.array([])
@@ -19,6 +21,22 @@ class Covariance_Matrix(object):
         self.params[param_name] = self.params[param_name] / (1 + delta)
         covm_2 = self.get_covmatrix()
         return (covm_2 - covm_1) / delta
+
+    def get_fisher(self):
+        cov_deriv = []
+        cov_deriv_names = []
+        for param in self.params:
+            cov_deriv.append( self.get_covmatrix_derivative(param) )
+            cov_deriv_names.append( param )
+        inv_covm = np.linalg.inv( self.get_covmatrix() )
+        self.fisher = np.empty((len(cov_deriv_names),len(cov_deriv_names)))
+        self.fisher[:] = np.nan
+        for ii in range(0,len(cov_deriv_names)):
+            for jj in range(0,len(cov_deriv_names)):
+                self.fisher[ii,jj] = .5 * np.trace(inv_covm @ cov_deriv[ii] @ inv_covm @ cov_deriv[jj])
+        idx = pd.Index(cov_deriv_names)
+        self.fisher= pd.DataFrame(data=self.fisher, index=idx, columns=idx)
+        return self.fisher
 
 class TotalCovMatrix(Covariance_Matrix):
     def __init__(self,covmatrices,params=dict()):
