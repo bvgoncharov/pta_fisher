@@ -4,6 +4,11 @@ import scipy.constants as spc
 import pandas as pd
 import ipdb
 
+# Temporary
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 # Getting a covariance matrix from manually given values
 params = dict()
 params['efac_20cm'] = 1.1
@@ -39,6 +44,11 @@ ccc = SpinCovMatrix(params=params_red,toa=toa)
 print('Covariance matrix CCC for spin noise, generated for all ToA:')
 print(ccc.get_covmatrix())
 
+# Getting a red noise covariance matrix, using parameters for J1545-4550
+# With more ToA
+toa = np.linspace(1000000,1000000+spc.year*10,100)
+eee = SpinCovMatrix(params=params_red,toa=toa)
+
 # Testing derivative calculations:
 print('Derivative of covariance matrix with respect to efac_20cm.')
 print('It was used only in first observation.')
@@ -62,6 +72,12 @@ print( ddd.get_covmatrix_derivative(param_name='efac_20cm') )
 print('Total covariance matrix derivative with respect to alpha:')
 print( ddd.get_covmatrix_derivative(param_name='alpha') )
 
+# Testing a larger covariance matrix from red and white noise
+list_cov = []
+list_cov.append(bbb)
+list_cov.append(eee)
+fff = TotalCovMatrix(list_cov)
+
 # Testing a Fisher matrix calculation:
 print('Fisher information matrix from total matrix')
 print( ddd.get_fisher() )
@@ -71,7 +87,9 @@ print('Fisher information matrix from red matrix')
 print( ccc.get_fisher() )
 
 # Pseudo-inverting the Fisher matrix:
-fisher = aaa.get_fisher()
-error_matrix = pd.DataFrame(np.linalg.pinv(fisher),fisher.columns,fisher.index)
+fisher = ddd.get_fisher()
+error_matrix = pd.DataFrame(np.linalg.pinv(fisher),columns=fisher.columns,index=fisher.index)
 print('Minimum error matrix for white noise:')
 print(error_matrix)
+
+ipdb.set_trace()

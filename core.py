@@ -22,11 +22,11 @@ class Covariance_Matrix(object):
         covm_2 = self.get_covmatrix()
         return (covm_2 - covm_1) / delta
 
-    def get_fisher(self):
+    def get_fisher(self,delta=1e-7):
         cov_deriv = []
         cov_deriv_names = []
         for param in self.params:
-            cov_deriv.append( self.get_covmatrix_derivative(param) )
+            cov_deriv.append( self.get_covmatrix_derivative(param,delta=delta) )
             cov_deriv_names.append( param )
         inv_covm = np.linalg.inv( self.get_covmatrix() )
         self.fisher = np.empty((len(cov_deriv_names),len(cov_deriv_names)))
